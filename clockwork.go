@@ -1,4 +1,4 @@
-package main
+package clockwork
 
 import (
 	"fmt"
@@ -43,16 +43,19 @@ type Job struct {
 	at_minute  int
 	jobfunc    func()
 
-	last_run time.Time
-	next_run time.Time
+	last_scheduled_run time.Time
+	next_scheduled_run time.Time
 }
 
 func (j *Job) Every(frequency int) *Job {
+	if frequency <= 0 {
+		panic("Every(frequency) has to be >= 1")
+	}
 	j.frequency = frequency
 	return j
 }
 
-func (j *Job) at(t string) *Job {
+func (j *Job) At(t string) *Job {
 	j.use_at = true
 	j.at_hour, _ = strconv.Atoi(strings.Split(t, ":")[0])
 	j.at_minute, _ = strconv.Atoi(strings.Split(t, ":")[1])
@@ -61,12 +64,21 @@ func (j *Job) at(t string) *Job {
 
 func (j *Job) Do(function func()) string {
 	j.jobfunc = function
-	j._schedule_next_run()
+	j.schedule_next_run()
 	j.scheduler.jobs = append(j.scheduler.jobs, *j)
 	return j.identifier
 }
 
-func (j *Job) _schedule_next_run() {
+func (j *Job) due() bool {
+	now := time.Now()
+	if now.After(j.next_scheduled_run) {
+		return true
+	} else {
+		return false
+	}
+}
+
+func (j *Job) schedule_next_run() {
 	/*	examples from python/schedule:
 		schedule.every(10).minutes.do(job)
 		schedule.every().hour.do(job)
@@ -76,21 +88,55 @@ func (j *Job) _schedule_next_run() {
 	*/
 	if j.frequency == 1 {
 		// If Every(frequency) == 1, unit can be anything .
-		// at() can be used only with day and WEEKDAY
+		// At() can be used only with day and WEEKDAY
 		if j.use_at == true && (j.unit == minute || j.unit == hour || j.unit == week) {
-			panic("Cannot schedule Every(1) with at() when unit is not day or WEEKDAY") // TODO: Turn this into err
+			panic("Cannot schedule Every(1) with At() when unit is not day or WEEKDAY") // TODO: Turn this into err
 		} else {
-			fmt.Println("OK")
+
+			if j.unit == second {
+				if j.next_scheduled_run == (time.Time{}) && j.last_scheduled_run == (time.Time{}) {
+					j.next_scheduled_run = time.Now()
+				}
+				j.last_scheduled_run = j.next_scheduled_run
+				j.next_scheduled_run = j.last_scheduled_run.Add(1 * time.Second)
+			}
+
+			if j.unit == minute {
+				if j.next_scheduled_run == (time.Time{}) && j.last_scheduled_run == (time.Time{}) {
+					j.next_scheduled_run = time.Now()
+				}
+				j.last_scheduled_run = j.next_scheduled_run
+				j.next_scheduled_run = j.last_scheduled_run.Add(1 * time.Minute)
+			}
+
+			if j.unit == hour {
+				if j.next_scheduled_run == (time.Time{}) && j.last_scheduled_run == (time.Time{}) {
+					j.next_scheduled_run = time.Now()
+				}
+				j.last_scheduled_run = j.next_scheduled_run
+				j.next_scheduled_run = j.last_scheduled_run.Add(1 * time.Hour)
+
+			}
+
+			if j.unit == week {
+				if j.next_scheduled_run == (time.Time{}) && j.last_scheduled_run == (time.Time{}) {
+					j.next_scheduled_run = time.Now()
+				}
+				j.last_scheduled_run = j.next_scheduled_run
+				j.next_scheduled_run = j.last_scheduled_run.Add(168 * time.Hour) // 168 hours in a week
+			}
+
+			/////// todo
 		}
 	} else {
 		// If Every(frequency) > 1, unit has to be either second, minute, hour, day, week - not a WEEKDAY
-		// at() can be used only with day
+		// At() can be used only with day
 
 		if j.unit == second || j.unit == minute || j.unit == hour || j.unit == day || j.unit == week {
 			if j.use_at == true && (j.unit == day) {
-				fmt.Println("OK")
+				//fmt.Println("OK")
 			} else {
-				panic("Cannot schedule Every(>1) with at() when unit is not day")
+				panic("Cannot schedule Every(>1) with At() when unit is not day") // TODO: Turn this into err
 			}
 		} else {
 			panic("Cannot schedule Every(>1) when unit is WEEKDAY") // TODO: Turn this into err
@@ -191,7 +237,7 @@ type Scheduler struct {
 	jobs       []Job
 }
 
-func New() Scheduler {
+func NewScheduler() Scheduler {
 	return Scheduler{
 		identifier: uuid.New().String(),
 		jobs:       make([]Job, 0),
@@ -200,41 +246,31 @@ func New() Scheduler {
 
 func (s *Scheduler) Run() {
 	for {
-		for _, job := range s.jobs {
-			if job.jobfunc == nil {
-				fmt.Println("nil")
-			} else {
+		for jobIdx := range s.jobs {
+			job := &s.jobs[jobIdx]
+			if job.due() {
+				job.schedule_next_run()
 				job.jobfunc()
 			}
 		}
+
 	}
 }
 
 func (s *Scheduler) Schedule() *Job {
 	new_job := Job{
-		identifier: uuid.New().String(),
-		scheduler:  s,
-		unit:       None,
-		frequency:  1,
-		use_at:     false,
-		at_hour:    0,
-		at_minute:  0,
-		jobfunc:    nil,
-		last_run:   time.Time{}, // zero value
-		next_run:   time.Time{}, // zero value
+		identifier:         uuid.New().String(),
+		scheduler:          s,
+		unit:               None,
+		frequency:          1,
+		use_at:             false,
+		at_hour:            0,
+		at_minute:          0,
+		jobfunc:            nil,
+		last_scheduled_run: time.Time{}, // zero value
+		next_scheduled_run: time.Time{}, // zero value
 	}
 	return &new_job
 }
 
 /*****************************************************************************/
-
-func main() {
-	sched := New()
-	sched.Schedule().Every(2).Days().at("12:23").Do(printaj)
-	sched.Run()
-}
-
-func printaj() {
-	//fmt.Println("bok")
-
-}
