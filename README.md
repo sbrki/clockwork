@@ -2,7 +2,7 @@
 
 A simple and intuitive scheduling library in Go.
 
-Inspired by [pythons schedule](https://github.com/dbader/schedule) and [rubys clockwork](https://github.com/adamwiggins/clockwork) libraries.
+Inspired by [python's schedule](https://github.com/dbader/schedule) and [ruby's clockwork](https://github.com/adamwiggins/clockwork) libraries.
 
 
 ## Example use
