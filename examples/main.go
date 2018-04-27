@@ -1,13 +1,3 @@
-# clockwork
-
-A simple and intuitive scheduling library in Go.
-
-Inspired by [pythons schedule](https://github.com/dbader/schedule) and [rubys clockwork](https://github.com/adamwiggins/clockwork) libraries.
-
-
-## Example use
-
-```go
 package main
 
 import (
@@ -34,4 +24,3 @@ func something() {
 	fmt.Println("foo")
 
 }
-```
