@@ -7,6 +7,7 @@ import (
 
 func main() {
 	sched := clockwork.NewScheduler()
+
 	sched.Schedule().Every(10).Seconds().Do(something)
 	sched.Schedule().Every(3).Minutes().Do(something)
 	sched.Schedule().Every(4).Hours().Do(something)
