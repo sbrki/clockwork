@@ -1,5 +1,7 @@
 # clockwork
 
+<p align="center"><img src ="https://github.com/whiteShtef/clockwork/raw/master/assets/logo/small.png" /></p>
+
 A simple and intuitive scheduling library in Go.
 
 Inspired by [python's schedule](https://github.com/dbader/schedule) and [ruby's clockwork](https://github.com/adamwiggins/clockwork) libraries.
