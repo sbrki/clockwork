@@ -13,15 +13,10 @@ type TimeUnit int
 const (
 	None = iota
 	second
-	//seconds
 	minute
-	//minutes
 	hour
-	//hours
 	day
-	//days
 	week
-	//weeks
 	monday
 	tuesday
 	wednesday
@@ -31,19 +26,17 @@ const (
 	sunday
 )
 
-/*****************************************************************************/
-
 type Job struct {
 	identifier string
 	scheduler  *Scheduler
 	unit       TimeUnit
 	frequency  int
-	use_at     bool
-	at_hour    int
-	at_minute  int
-	jobfunc    func()
+	useAt      bool
+	atHour     int
+	atMinute   int
+	workFunc   func()
 
-	next_scheduled_run time.Time
+	nextScheduledRun time.Time
 }
 
 func (j *Job) Every(frequency int) *Job {
@@ -60,82 +53,74 @@ func (j *Job) EverySingle() *Job {
 }
 
 func (j *Job) At(t string) *Job {
-	j.use_at = true
-	j.at_hour, _ = strconv.Atoi(strings.Split(t, ":")[0])
-	j.at_minute, _ = strconv.Atoi(strings.Split(t, ":")[1])
+	j.useAt = true
+	j.atHour, _ = strconv.Atoi(strings.Split(t, ":")[0])
+	j.atMinute, _ = strconv.Atoi(strings.Split(t, ":")[1])
 	return j
 }
 
 func (j *Job) Do(function func()) string {
-	j.jobfunc = function
-	j.schedule_next_run()
+	j.workFunc = function
+	j.scheduleNextRun()
 	j.scheduler.jobs = append(j.scheduler.jobs, *j)
 	return j.identifier
 }
 
 func (j *Job) due() bool {
 	now := time.Now()
-	if now.After(j.next_scheduled_run) {
+	if now.After(j.nextScheduledRun) {
 		return true
 	} else {
 		return false
 	}
 }
 
-func (j *Job) schedule_next_run() {
-	/*	examples from python/schedule:
-		schedule.every(10).minutes.do(job)
-		schedule.every().hour.do(job)
-		schedule.every().day.at("10:30").do(job)
-		schedule.every().monday.do(job)
-		schedule.every().wednesday.at("13:15").do(job)
-	*/
-
+func (j *Job) scheduleNextRun() {
 	// If Every(frequency) == 1, unit can be anything .
 	// At() can be used only with day and WEEKDAY
 	if j.frequency == 1 {
 		// Panic if usage of "At()" is incorrect
-		if j.use_at == true && (j.unit == minute || j.unit == hour || j.unit == week) {
+		if j.useAt == true && (j.unit == minute || j.unit == hour || j.unit == week) {
 			panic("Cannot schedule Every(1) with At() when unit is not day or WEEKDAY") // TODO: Turn this into err
 		}
 
 		// Handle everything except day and WEEKDAY -- these guys don't use At()
 		if j.unit == second || j.unit == minute || j.unit == hour || j.unit == week {
-			if j.next_scheduled_run == (time.Time{}) {
-				j.next_scheduled_run = time.Now()
+			if j.nextScheduledRun == (time.Time{}) {
+				j.nextScheduledRun = time.Now()
 			}
 
 			switch j.unit {
 			case second:
-				j.next_scheduled_run = j.next_scheduled_run.Add(1 * time.Second)
+				j.nextScheduledRun = j.nextScheduledRun.Add(1 * time.Second)
 			case minute:
-				j.next_scheduled_run = j.next_scheduled_run.Add(1 * time.Minute)
+				j.nextScheduledRun = j.nextScheduledRun.Add(1 * time.Minute)
 			case hour:
-				j.next_scheduled_run = j.next_scheduled_run.Add(1 * time.Hour)
+				j.nextScheduledRun = j.nextScheduledRun.Add(1 * time.Hour)
 			case week:
-				j.next_scheduled_run = j.next_scheduled_run.Add(168 * time.Hour) // 168 hours in a week
+				j.nextScheduledRun = j.nextScheduledRun.Add(168 * time.Hour) // 168 hours in a week
 
 			}
 		} else {
 			// Handle Day and WEEKDAY  --  these guys use At()
 			switch j.unit {
 			case day:
-				if j.next_scheduled_run == (time.Time{}) {
+				if j.nextScheduledRun == (time.Time{}) {
 					now := time.Now()
 					last_midnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)
-					if j.use_at == true {
-						j.next_scheduled_run = last_midnight.Add(
-							time.Duration(j.at_hour)*time.Hour +
-								time.Duration(j.at_minute)*time.Minute,
+					if j.useAt == true {
+						j.nextScheduledRun = last_midnight.Add(
+							time.Duration(j.atHour)*time.Hour +
+								time.Duration(j.atMinute)*time.Minute,
 						)
 					} else {
-						j.next_scheduled_run = last_midnight
+						j.nextScheduledRun = last_midnight
 					}
 				}
-				j.next_scheduled_run = j.next_scheduled_run.Add(24 * time.Hour)
+				j.nextScheduledRun = j.nextScheduledRun.Add(24 * time.Hour)
 
 			case monday:
-				if j.next_scheduled_run == (time.Time{}) {
+				if j.nextScheduledRun == (time.Time{}) {
 					now := time.Now()
 					last_monday_midnight := time.Date(
 						now.Year(),
@@ -143,19 +128,19 @@ func (j *Job) schedule_next_run() {
 						now.Day()-int(now.Weekday()-time.Monday),
 						0, 0, 0, 0,
 						time.Local)
-					if j.use_at == true {
-						j.next_scheduled_run = last_monday_midnight.Add(
-							time.Duration(j.at_hour)*time.Hour +
-								time.Duration(j.at_minute)*time.Minute,
+					if j.useAt == true {
+						j.nextScheduledRun = last_monday_midnight.Add(
+							time.Duration(j.atHour)*time.Hour +
+								time.Duration(j.atMinute)*time.Minute,
 						)
 					} else {
-						j.next_scheduled_run = last_monday_midnight
+						j.nextScheduledRun = last_monday_midnight
 					}
 				}
-				j.next_scheduled_run = j.next_scheduled_run.Add(7 * 24 * time.Hour)
+				j.nextScheduledRun = j.nextScheduledRun.Add(7 * 24 * time.Hour)
 
 			case tuesday:
-				if j.next_scheduled_run == (time.Time{}) {
+				if j.nextScheduledRun == (time.Time{}) {
 					now := time.Now()
 					last_tuesday_midnight := time.Date(
 						now.Year(),
@@ -163,19 +148,19 @@ func (j *Job) schedule_next_run() {
 						now.Day()-int(now.Weekday()-time.Tuesday),
 						0, 0, 0, 0,
 						time.Local)
-					if j.use_at == true {
-						j.next_scheduled_run = last_tuesday_midnight.Add(
-							time.Duration(j.at_hour)*time.Hour +
-								time.Duration(j.at_minute)*time.Minute,
+					if j.useAt == true {
+						j.nextScheduledRun = last_tuesday_midnight.Add(
+							time.Duration(j.atHour)*time.Hour +
+								time.Duration(j.atMinute)*time.Minute,
 						)
 					} else {
-						j.next_scheduled_run = last_tuesday_midnight
+						j.nextScheduledRun = last_tuesday_midnight
 					}
 				}
-				j.next_scheduled_run = j.next_scheduled_run.Add(7 * 24 * time.Hour)
+				j.nextScheduledRun = j.nextScheduledRun.Add(7 * 24 * time.Hour)
 
 			case wednesday:
-				if j.next_scheduled_run == (time.Time{}) {
+				if j.nextScheduledRun == (time.Time{}) {
 					now := time.Now()
 					last_wednesday_midnight := time.Date(
 						now.Year(),
@@ -183,19 +168,19 @@ func (j *Job) schedule_next_run() {
 						now.Day()-int(now.Weekday()-time.Wednesday),
 						0, 0, 0, 0,
 						time.Local)
-					if j.use_at == true {
-						j.next_scheduled_run = last_wednesday_midnight.Add(
-							time.Duration(j.at_hour)*time.Hour +
-								time.Duration(j.at_minute)*time.Minute,
+					if j.useAt == true {
+						j.nextScheduledRun = last_wednesday_midnight.Add(
+							time.Duration(j.atHour)*time.Hour +
+								time.Duration(j.atMinute)*time.Minute,
 						)
 					} else {
-						j.next_scheduled_run = last_wednesday_midnight
+						j.nextScheduledRun = last_wednesday_midnight
 					}
 				}
-				j.next_scheduled_run = j.next_scheduled_run.Add(7 * 24 * time.Hour)
+				j.nextScheduledRun = j.nextScheduledRun.Add(7 * 24 * time.Hour)
 
 			case thursday:
-				if j.next_scheduled_run == (time.Time{}) {
+				if j.nextScheduledRun == (time.Time{}) {
 					now := time.Now()
 					last_thursday_midnight := time.Date(
 						now.Year(),
@@ -203,19 +188,19 @@ func (j *Job) schedule_next_run() {
 						now.Day()-int(now.Weekday()-time.Thursday),
 						0, 0, 0, 0,
 						time.Local)
-					if j.use_at == true {
-						j.next_scheduled_run = last_thursday_midnight.Add(
-							time.Duration(j.at_hour)*time.Hour +
-								time.Duration(j.at_minute)*time.Minute,
+					if j.useAt == true {
+						j.nextScheduledRun = last_thursday_midnight.Add(
+							time.Duration(j.atHour)*time.Hour +
+								time.Duration(j.atMinute)*time.Minute,
 						)
 					} else {
-						j.next_scheduled_run = last_thursday_midnight
+						j.nextScheduledRun = last_thursday_midnight
 					}
 				}
-				j.next_scheduled_run = j.next_scheduled_run.Add(7 * 24 * time.Hour)
+				j.nextScheduledRun = j.nextScheduledRun.Add(7 * 24 * time.Hour)
 
 			case saturday:
-				if j.next_scheduled_run == (time.Time{}) {
+				if j.nextScheduledRun == (time.Time{}) {
 					now := time.Now()
 					last_saturday_midnight := time.Date(
 						now.Year(),
@@ -223,19 +208,19 @@ func (j *Job) schedule_next_run() {
 						now.Day()-int(now.Weekday()-time.Saturday),
 						0, 0, 0, 0,
 						time.Local)
-					if j.use_at == true {
-						j.next_scheduled_run = last_saturday_midnight.Add(
-							time.Duration(j.at_hour)*time.Hour +
-								time.Duration(j.at_minute)*time.Minute,
+					if j.useAt == true {
+						j.nextScheduledRun = last_saturday_midnight.Add(
+							time.Duration(j.atHour)*time.Hour +
+								time.Duration(j.atMinute)*time.Minute,
 						)
 					} else {
-						j.next_scheduled_run = last_saturday_midnight
+						j.nextScheduledRun = last_saturday_midnight
 					}
 				}
-				j.next_scheduled_run = j.next_scheduled_run.Add(7 * 24 * time.Hour)
+				j.nextScheduledRun = j.nextScheduledRun.Add(7 * 24 * time.Hour)
 
 			case sunday:
-				if j.next_scheduled_run == (time.Time{}) {
+				if j.nextScheduledRun == (time.Time{}) {
 					now := time.Now()
 					last_sunday_midnight := time.Date(
 						now.Year(),
@@ -243,78 +228,77 @@ func (j *Job) schedule_next_run() {
 						now.Day()-int(now.Weekday()-time.Sunday),
 						0, 0, 0, 0,
 						time.Local)
-					if j.use_at == true {
-						j.next_scheduled_run = last_sunday_midnight.Add(
-							time.Duration(j.at_hour)*time.Hour +
-								time.Duration(j.at_minute)*time.Minute,
+					if j.useAt == true {
+						j.nextScheduledRun = last_sunday_midnight.Add(
+							time.Duration(j.atHour)*time.Hour +
+								time.Duration(j.atMinute)*time.Minute,
 						)
 					} else {
-						j.next_scheduled_run = last_sunday_midnight
+						j.nextScheduledRun = last_sunday_midnight
 					}
 				}
-				j.next_scheduled_run = j.next_scheduled_run.Add(7 * 24 * time.Hour)
+				j.nextScheduledRun = j.nextScheduledRun.Add(7 * 24 * time.Hour)
 
 			}
 
 		}
 
-		//fmt.Println("Scheduled for ", j.next_scheduled_run)
+		//fmt.Println("Scheduled for ", j.nextScheduledRun)
 
 	} else {
 		// If Every(frequency) > 1, unit has to be either second, minute, hour, day, week - not a WEEKDAY
 		// At() can be used only with day
 
 		if j.unit == second || j.unit == minute || j.unit == hour || j.unit == day || j.unit == week {
-			if j.use_at == true && (j.unit != day) {
+			if j.useAt == true && (j.unit != day) {
 				panic("Cannot schedule Every(>1) with At() when unit is not day") // TODO: Turn this into err
 			}
 			// Handle everything except  day  -- these guys don't use At()
 			if j.unit == second || j.unit == minute || j.unit == hour || j.unit == week {
-				if j.next_scheduled_run == (time.Time{}) {
-					j.next_scheduled_run = time.Now()
+				if j.nextScheduledRun == (time.Time{}) {
+					j.nextScheduledRun = time.Now()
 				}
 
 				switch j.unit {
 				case second:
-					j.next_scheduled_run = j.next_scheduled_run.Add(time.Duration(j.frequency) * time.Second)
+					j.nextScheduledRun = j.nextScheduledRun.Add(time.Duration(j.frequency) * time.Second)
 				case minute:
-					j.next_scheduled_run = j.next_scheduled_run.Add(time.Duration(j.frequency) * time.Minute)
+					j.nextScheduledRun = j.nextScheduledRun.Add(time.Duration(j.frequency) * time.Minute)
 				case hour:
-					j.next_scheduled_run = j.next_scheduled_run.Add(time.Duration(j.frequency) * time.Hour)
+					j.nextScheduledRun = j.nextScheduledRun.Add(time.Duration(j.frequency) * time.Hour)
 				case week:
-					j.next_scheduled_run = j.next_scheduled_run.Add(time.Duration(j.frequency*168) * time.Hour) // 168 hours in a week
+					j.nextScheduledRun = j.nextScheduledRun.Add(time.Duration(j.frequency*168) * time.Hour) // 168 hours in a week
 
 				}
 			} else {
 				// Handle Day  --  these guy uses At()
 				switch j.unit { // switch is here not really neccesarry since day is
 				case day: // the only option left.
-					if j.next_scheduled_run == (time.Time{}) {
+					if j.nextScheduledRun == (time.Time{}) {
 						now := time.Now()
 						last_midnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)
-						if j.use_at == true {
-							j.next_scheduled_run = last_midnight.Add(
-								time.Duration(j.at_hour)*time.Hour +
-									time.Duration(j.at_minute)*time.Minute,
+						if j.useAt == true {
+							j.nextScheduledRun = last_midnight.Add(
+								time.Duration(j.atHour)*time.Hour +
+									time.Duration(j.atMinute)*time.Minute,
 							)
 						} else {
-							j.next_scheduled_run = last_midnight
+							j.nextScheduledRun = last_midnight
 						}
 					}
-					j.next_scheduled_run = j.next_scheduled_run.Add(time.Duration(j.frequency*24) * time.Hour)
+					j.nextScheduledRun = j.nextScheduledRun.Add(time.Duration(j.frequency*24) * time.Hour)
 				}
 			}
 
 		} else {
 			panic("Cannot schedule Every(>1) when unit is WEEKDAY") // TODO: Turn this into err
 		}
-		//fmt.Println("Scheduled for ", j.next_scheduled_run)
+		//fmt.Println("Scheduled for ", j.nextScheduledRun)
 
 	}
 	return
 }
 
-/**********************/
 func (j *Job) Second() *Job {
 	j.unit = second
 	return j
@@ -399,8 +383,6 @@ func (j *Job) Sunday() *Job {
 	return j
 }
 
-/*****************************************************************************/
-
 type Scheduler struct {
 	identifier string
 	jobs       []Job
@@ -418,8 +400,8 @@ func (s *Scheduler) Run() {
 		for jobIdx := range s.jobs {
 			job := &s.jobs[jobIdx]
 			if job.due() {
-				job.schedule_next_run()
-				go job.jobfunc()
+				job.scheduleNextRun()
+				go job.workFunc()
 			}
 		}
 
@@ -428,17 +410,15 @@ func (s *Scheduler) Run() {
 
 func (s *Scheduler) Schedule() *Job {
 	new_job := Job{
-		identifier:         uuid.New().String(),
-		scheduler:          s,
-		unit:               None,
-		frequency:          1,
-		use_at:             false,
-		at_hour:            0,
-		at_minute:          0,
-		jobfunc:            nil,
-		next_scheduled_run: time.Time{}, // zero value
+		identifier:       uuid.New().String(),
+		scheduler:        s,
+		unit:             None,
+		frequency:        1,
+		useAt:            false,
+		atHour:           0,
+		atMinute:         0,
+		workFunc:         nil,
+		nextScheduledRun: time.Time{}, // zero value
 	}
 	return &new_job
 }
-
-/*****************************************************************************/
