@@ -1,7 +1,7 @@
 package clockwork
 
 import (
-	//	"fmt"
+	"fmt"
 	"github.com/google/uuid"
 	"strconv"
 	"strings"
@@ -120,130 +120,22 @@ func (j *Job) scheduleNextRun() {
 				j.nextScheduledRun = j.nextScheduledRun.Add(24 * time.Hour)
 
 			case monday:
-				if j.nextScheduledRun == (time.Time{}) {
-					now := time.Now()
-					last_monday_midnight := time.Date(
-						now.Year(),
-						now.Month(),
-						now.Day()-int(now.Weekday()-time.Monday),
-						0, 0, 0, 0,
-						time.Local)
-					if j.useAt == true {
-						j.nextScheduledRun = last_monday_midnight.Add(
-							time.Duration(j.atHour)*time.Hour +
-								time.Duration(j.atMinute)*time.Minute,
-						)
-					} else {
-						j.nextScheduledRun = last_monday_midnight
-					}
-				}
-				j.nextScheduledRun = j.nextScheduledRun.Add(7 * 24 * time.Hour)
-
+				j.scheduleWeekday(time.Monday)
 			case tuesday:
-				if j.nextScheduledRun == (time.Time{}) {
-					now := time.Now()
-					last_tuesday_midnight := time.Date(
-						now.Year(),
-						now.Month(),
-						now.Day()-int(now.Weekday()-time.Tuesday),
-						0, 0, 0, 0,
-						time.Local)
-					if j.useAt == true {
-						j.nextScheduledRun = last_tuesday_midnight.Add(
-							time.Duration(j.atHour)*time.Hour +
-								time.Duration(j.atMinute)*time.Minute,
-						)
-					} else {
-						j.nextScheduledRun = last_tuesday_midnight
-					}
-				}
-				j.nextScheduledRun = j.nextScheduledRun.Add(7 * 24 * time.Hour)
-
+				j.scheduleWeekday(time.Tuesday)
 			case wednesday:
-				if j.nextScheduledRun == (time.Time{}) {
-					now := time.Now()
-					last_wednesday_midnight := time.Date(
-						now.Year(),
-						now.Month(),
-						now.Day()-int(now.Weekday()-time.Wednesday),
-						0, 0, 0, 0,
-						time.Local)
-					if j.useAt == true {
-						j.nextScheduledRun = last_wednesday_midnight.Add(
-							time.Duration(j.atHour)*time.Hour +
-								time.Duration(j.atMinute)*time.Minute,
-						)
-					} else {
-						j.nextScheduledRun = last_wednesday_midnight
-					}
-				}
-				j.nextScheduledRun = j.nextScheduledRun.Add(7 * 24 * time.Hour)
-
+				j.scheduleWeekday(time.Wednesday)
 			case thursday:
-				if j.nextScheduledRun == (time.Time{}) {
-					now := time.Now()
-					last_thursday_midnight := time.Date(
-						now.Year(),
-						now.Month(),
-						now.Day()-int(now.Weekday()-time.Thursday),
-						0, 0, 0, 0,
-						time.Local)
-					if j.useAt == true {
-						j.nextScheduledRun = last_thursday_midnight.Add(
-							time.Duration(j.atHour)*time.Hour +
-								time.Duration(j.atMinute)*time.Minute,
-						)
-					} else {
-						j.nextScheduledRun = last_thursday_midnight
-					}
-				}
-				j.nextScheduledRun = j.nextScheduledRun.Add(7 * 24 * time.Hour)
-
+				j.scheduleWeekday(time.Wednesday)
 			case saturday:
-				if j.nextScheduledRun == (time.Time{}) {
-					now := time.Now()
-					last_saturday_midnight := time.Date(
-						now.Year(),
-						now.Month(),
-						now.Day()-int(now.Weekday()-time.Saturday),
-						0, 0, 0, 0,
-						time.Local)
-					if j.useAt == true {
-						j.nextScheduledRun = last_saturday_midnight.Add(
-							time.Duration(j.atHour)*time.Hour +
-								time.Duration(j.atMinute)*time.Minute,
-						)
-					} else {
-						j.nextScheduledRun = last_saturday_midnight
-					}
-				}
-				j.nextScheduledRun = j.nextScheduledRun.Add(7 * 24 * time.Hour)
-
+				j.scheduleWeekday(time.Saturday)
 			case sunday:
-				if j.nextScheduledRun == (time.Time{}) {
-					now := time.Now()
-					last_sunday_midnight := time.Date(
-						now.Year(),
-						now.Month(),
-						now.Day()-int(now.Weekday()-time.Sunday),
-						0, 0, 0, 0,
-						time.Local)
-					if j.useAt == true {
-						j.nextScheduledRun = last_sunday_midnight.Add(
-							time.Duration(j.atHour)*time.Hour +
-								time.Duration(j.atMinute)*time.Minute,
-						)
-					} else {
-						j.nextScheduledRun = last_sunday_midnight
-					}
-				}
-				j.nextScheduledRun = j.nextScheduledRun.Add(7 * 24 * time.Hour)
-
+				j.scheduleWeekday(time.Sunday)
 			}
 
 		}
 
-		//fmt.Println("Scheduled for ", j.nextScheduledRun)
+		fmt.Println("Scheduled for ", j.nextScheduledRun)
 
 	} else {
 		// If Every(frequency) > 1, unit has to be either second, minute, hour, day, week - not a WEEKDAY
@@ -261,13 +153,21 @@ func (j *Job) scheduleNextRun() {
 
 				switch j.unit {
 				case second:
-					j.nextScheduledRun = j.nextScheduledRun.Add(time.Duration(j.frequency) * time.Second)
+					j.nextScheduledRun = j.nextScheduledRun.Add(
+						time.Duration(j.frequency) * time.Second,
+					)
 				case minute:
-					j.nextScheduledRun = j.nextScheduledRun.Add(time.Duration(j.frequency) * time.Minute)
+					j.nextScheduledRun = j.nextScheduledRun.Add(
+						time.Duration(j.frequency) * time.Minute,
+					)
 				case hour:
-					j.nextScheduledRun = j.nextScheduledRun.Add(time.Duration(j.frequency) * time.Hour)
+					j.nextScheduledRun = j.nextScheduledRun.Add(
+						time.Duration(j.frequency) * time.Hour,
+					)
 				case week:
-					j.nextScheduledRun = j.nextScheduledRun.Add(time.Duration(j.frequency*168) * time.Hour) // 168 hours in a week
+					j.nextScheduledRun = j.nextScheduledRun.Add(
+						time.Duration(j.frequency*168) * time.Hour,
+					) // 168 hours in a week
 
 				}
 			} else {
@@ -276,7 +176,13 @@ func (j *Job) scheduleNextRun() {
 				case day: // the only option left.
 					if j.nextScheduledRun == (time.Time{}) {
 						now := time.Now()
-						last_midnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)
+						last_midnight := time.Date(
+							now.Year(),
+							now.Month(),
+							now.Day(),
+							0, 0, 0, 0,
+							time.Local,
+						)
 						if j.useAt == true {
 							j.nextScheduledRun = last_midnight.Add(
 								time.Duration(j.atHour)*time.Hour +
@@ -293,10 +199,31 @@ func (j *Job) scheduleNextRun() {
 		} else {
 			panic("Cannot schedule Every(>1) when unit is WEEKDAY") // TODO: Turn this into err
 		}
-		//fmt.Println("Scheduled for ", j.nextScheduledRun)
+		fmt.Println("Scheduled for ", j.nextScheduledRun)
 
 	}
 	return
+}
+
+func (j *Job) scheduleWeekday(day_of_week time.Weekday) {
+	if j.nextScheduledRun == (time.Time{}) {
+		now := time.Now()
+		lastWeekdayMidnight := time.Date(
+			now.Year(),
+			now.Month(),
+			now.Day()-int(now.Weekday()-day_of_week),
+			0, 0, 0, 0,
+			time.Local)
+		if j.useAt == true {
+			j.nextScheduledRun = lastWeekdayMidnight.Add(
+				time.Duration(j.atHour)*time.Hour +
+					time.Duration(j.atMinute)*time.Minute,
+			)
+		} else {
+			j.nextScheduledRun = lastWeekdayMidnight
+		}
+	}
+	j.nextScheduledRun = j.nextScheduledRun.Add(7 * 24 * time.Hour)
 }
 
 func (j *Job) Second() *Job {
