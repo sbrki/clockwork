@@ -49,11 +49,21 @@ type Job struct {
 	nextScheduledRun time.Time
 }
 
-func (j *Job) Every(frequency int) *Job {
-	if frequency <= 0 {
-		panic("Every(frequency) has to be >= 1")
+func (j *Job) Every(frequencies ...int) *Job {
+	l := len(frequencies)
+	
+	switch l {
+	case 0:
+		j.frequency = 1
+	case 1:
+		if frequencies[0] <= 0 {
+			panic("Every expects frequency to be greater than of equal to 1")
+		}
+		j.frequency = frequencies[0];
+	default:
+		panic("Every expects 0 or 1 arguments")
 	}
-	j.frequency = frequency
+	
 	return j
 }
 
