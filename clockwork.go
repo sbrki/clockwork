@@ -1,3 +1,13 @@
+// Package clockwork enables simple and intuitive scheduling in Go.
+//
+// Examples:
+//		sched.Schedule().Every(10).Seconds().Do(something)
+//		sched.Schedule().Every(3).Minutes().Do(something)
+//		sched.Schedule().Every(4).Hours().Do(something)
+//		sched.Schedule().Every(2).Days().At("12:32").Do(something)
+//		sched.Schedule().Every(12).Weeks().Do(something)
+//		sched.Schedule().Every(1).Monday().Do(something)
+//		sched.Schedule().Every(1).Saturday().At("8:00").Do(something)
 package clockwork
 
 import (
@@ -11,7 +21,7 @@ import (
 type TimeUnit int
 
 const (
-	None = iota
+	none = iota
 	second
 	minute
 	hour
@@ -339,7 +349,7 @@ func (s *Scheduler) Schedule() *Job {
 	new_job := Job{
 		identifier:       uuid.New().String(),
 		scheduler:        s,
-		unit:             None,
+		unit:             none,
 		frequency:        1,
 		useAt:            false,
 		atHour:           0,
