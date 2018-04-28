@@ -51,7 +51,7 @@ type Job struct {
 
 func (j *Job) Every(frequencies ...int) *Job {
 	l := len(frequencies)
-	
+
 	switch l {
 	case 0:
 		j.frequency = 1
@@ -59,11 +59,11 @@ func (j *Job) Every(frequencies ...int) *Job {
 		if frequencies[0] <= 0 {
 			panic("Every expects frequency to be greater than of equal to 1")
 		}
-		j.frequency = frequencies[0];
+		j.frequency = frequencies[0]
 	default:
 		panic("Every expects 0 or 1 arguments")
 	}
-	
+
 	return j
 }
 
