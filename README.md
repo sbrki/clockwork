@@ -1,6 +1,6 @@
 # clockwork
 
-<p align="center"><img src ="https://github.com/whiteShtef/clockwork/raw/master/assets/logo/small.png" /></p>
+<p align="center"><img height=250 src ="https://github.com/whiteShtef/clockwork/raw/master/assets/logo/large.png" /></p>
 
 A simple and intuitive scheduling library in Go.
 
