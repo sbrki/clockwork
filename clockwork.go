@@ -67,9 +67,9 @@ func (j *Job) Every(frequencies ...int) *Job {
 	return j
 }
 
+// Deprecating sooner than later
 func (j *Job) EverySingle() *Job {
-	j.frequency = 1
-	return j
+	return j.Every()
 }
 
 func (j *Job) At(t string) *Job {
