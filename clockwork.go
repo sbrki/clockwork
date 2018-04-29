@@ -12,10 +12,11 @@ package clockwork
 
 import (
 	"fmt"
-	"github.com/google/uuid"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type TimeUnit int
@@ -35,6 +36,10 @@ const (
 	saturday
 	sunday
 )
+
+var timeNow = func() time.Time {
+	return time.Now()
+}
 
 type Job struct {
 	identifier string
@@ -87,7 +92,7 @@ func (j *Job) Do(function func()) string {
 }
 
 func (j *Job) due() bool {
-	now := time.Now()
+	now := timeNow()
 	if now.After(j.nextScheduledRun) {
 		return true
 	} else {
@@ -107,7 +112,7 @@ func (j *Job) scheduleNextRun() {
 		// Handle everything except day and WEEKDAY -- these guys don't use At()
 		if j.unit == second || j.unit == minute || j.unit == hour || j.unit == week {
 			if j.nextScheduledRun == (time.Time{}) {
-				j.nextScheduledRun = time.Now()
+				j.nextScheduledRun = timeNow()
 			}
 
 			switch j.unit {
@@ -126,7 +131,7 @@ func (j *Job) scheduleNextRun() {
 			switch j.unit {
 			case day:
 				if j.nextScheduledRun == (time.Time{}) {
-					now := time.Now()
+					now := timeNow()
 					last_midnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)
 					if j.useAt == true {
 						j.nextScheduledRun = last_midnight.Add(
@@ -146,7 +151,9 @@ func (j *Job) scheduleNextRun() {
 			case wednesday:
 				j.scheduleWeekday(time.Wednesday)
 			case thursday:
-				j.scheduleWeekday(time.Wednesday)
+				j.scheduleWeekday(time.Thursday)
+			case friday:
+				j.scheduleWeekday(time.Friday)
 			case saturday:
 				j.scheduleWeekday(time.Saturday)
 			case sunday:
@@ -168,7 +175,7 @@ func (j *Job) scheduleNextRun() {
 			// Handle everything except  day  -- these guys don't use At()
 			if j.unit == second || j.unit == minute || j.unit == hour || j.unit == week {
 				if j.nextScheduledRun == (time.Time{}) {
-					j.nextScheduledRun = time.Now()
+					j.nextScheduledRun = timeNow()
 				}
 
 				switch j.unit {
@@ -195,7 +202,7 @@ func (j *Job) scheduleNextRun() {
 				switch j.unit { // switch is here not really neccesarry since day is
 				case day: // the only option left.
 					if j.nextScheduledRun == (time.Time{}) {
-						now := time.Now()
+						now := timeNow()
 						last_midnight := time.Date(
 							now.Year(),
 							now.Month(),
@@ -227,7 +234,7 @@ func (j *Job) scheduleNextRun() {
 
 func (j *Job) scheduleWeekday(day_of_week time.Weekday) {
 	if j.nextScheduledRun == (time.Time{}) {
-		now := time.Now()
+		now := timeNow()
 		lastWeekdayMidnight := time.Date(
 			now.Year(),
 			now.Month(),
@@ -339,6 +346,12 @@ func NewScheduler() Scheduler {
 	return Scheduler{
 		identifier: uuid.New().String(),
 		jobs:       make([]Job, 0),
+	}
+}
+
+func (s *Scheduler) activateTestMode() {
+	timeNow = func() time.Time {
+		return time.Date(1, 1, 1, 1, 1, 0, 0, time.Local)
 	}
 }
 
