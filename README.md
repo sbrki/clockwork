@@ -38,3 +38,5 @@ func something() {
 
 }
 ```
+
+The package uses [go dep] (https://golang.github.io/dep/) for dependency management.

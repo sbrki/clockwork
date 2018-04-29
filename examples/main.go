@@ -2,7 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/samlitowitz/clockwork"
+
+	"github.com/whiteShtef/clockwork"
 )
 
 func main() {
