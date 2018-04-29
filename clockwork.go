@@ -349,7 +349,7 @@ func NewScheduler() Scheduler {
 	}
 }
 
-func (s *Scheduler) isTest() {
+func (s *Scheduler) activateTestMode() {
 	timeNow = func() time.Time {
 		return time.Date(1, 1, 1, 1, 1, 0, 0, time.Local)
 	}

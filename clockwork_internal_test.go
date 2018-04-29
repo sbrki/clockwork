@@ -12,7 +12,7 @@ func something() {}
 
 func TestScheduleNextRun(t *testing.T) {
 	sched := NewScheduler()
-	sched.isTest()
+	sched.activateTestMode()
 
 	sched.Schedule().Every(10).Seconds().Do(something)
 	s := sched.jobs[0].nextScheduledRun
