@@ -100,17 +100,58 @@ func (j *Job) due() bool {
 	}
 }
 
+func (j *Job) isAsUsedIncorrectly() bool {
+	// Generally, At() can only be used then unit is day or WEEKDAY
+	if j.useAt == true &&
+		(j.unit == second || j.unit == minute ||
+			j.unit == hour || j.unit == week) {
+		return true
+	} else {
+		return false
+	}
+}
+
+// Returns false when job unit is Day or any of the weekdays, vice versa.
+// Used for scheduling when job frequency is 1, because day and WEEKDAY
+// can be used with At() function which requires different scheduling approach.
+func (j *Job) unitNotDayOrWEEKDAY() bool {
+	if j.unit == second || j.unit == minute ||
+		j.unit == hour || j.unit == week {
+		return true
+	} else {
+		return false
+	}
+
+}
+
+// Returns false when job unit is or any of the weekdays, vice versa.
+// Used for scheduling when job frequency is > 1, because WEEKDAY
+// can be used with At() function which requires different scheduling approach.
+func (j *Job) unitNotWEEKDAY() bool {
+	if j.unit == second || j.unit == minute ||
+		j.unit == hour || j.unit == day ||
+		j.unit == week {
+		return true
+	} else {
+		return false
+	}
+}
+
 func (j *Job) scheduleNextRun() {
 	// If Every(frequency) == 1, unit can be anything .
 	// At() can be used only with day and WEEKDAY
 	if j.frequency == 1 {
+
 		// Panic if usage of "At()" is incorrect
-		if j.useAt == true && (j.unit == minute || j.unit == hour || j.unit == week) {
-			panic("Cannot schedule Every(1) with At() when unit is not day or WEEKDAY") // TODO: Turn this into err
+		if j.isAsUsedIncorrectly() {
+			panic(
+				`Cannot schedule Every(1) with At()
+				 when unit is not day or WEEKDAY`,
+			) // TODO: Turn this into err
 		}
 
 		// Handle everything except day and WEEKDAY -- these guys don't use At()
-		if j.unit == second || j.unit == minute || j.unit == hour || j.unit == week {
+		if j.unitNotDayOrWEEKDAY() {
 			if j.nextScheduledRun == (time.Time{}) {
 				j.nextScheduledRun = timeNow()
 			}
@@ -168,12 +209,17 @@ func (j *Job) scheduleNextRun() {
 		// If Every(frequency) > 1, unit has to be either second, minute, hour, day, week - not a WEEKDAY
 		// At() can be used only with day
 
-		if j.unit == second || j.unit == minute || j.unit == hour || j.unit == day || j.unit == week {
-			if j.useAt == true && (j.unit != day) {
-				panic("Cannot schedule Every(>1) with At() when unit is not day") // TODO: Turn this into err
-			}
-			// Handle everything except  day  -- these guys don't use At()
-			if j.unit == second || j.unit == minute || j.unit == hour || j.unit == week {
+		// Panic if usage of "At()" is incorrect
+		if j.isAsUsedIncorrectly() {
+			panic("Cannot schedule Every(>1) with At() when unit is not day") // TODO: Turn this into err
+		}
+
+		// Unlike when frequency = 1, here unit can't be anyhing.
+		// We have to check that it isn't a WEEKDAY
+		if j.unitNotWEEKDAY() {
+
+			// Handle everything except day -- these guys don't use At()
+			if j.unit != day {
 				if j.nextScheduledRun == (time.Time{}) {
 					j.nextScheduledRun = timeNow()
 				}
@@ -199,34 +245,32 @@ func (j *Job) scheduleNextRun() {
 				}
 			} else {
 				// Handle Day  --  these guy uses At()
-				switch j.unit { // switch is here not really neccesarry since day is
-				case day: // the only option left.
-					if j.nextScheduledRun == (time.Time{}) {
-						now := timeNow()
-						last_midnight := time.Date(
-							now.Year(),
-							now.Month(),
-							now.Day(),
-							0, 0, 0, 0,
-							time.Local,
+				if j.nextScheduledRun == (time.Time{}) {
+					now := timeNow()
+					last_midnight := time.Date(
+						now.Year(),
+						now.Month(),
+						now.Day(),
+						0, 0, 0, 0,
+						time.Local,
+					)
+					if j.useAt == true {
+						j.nextScheduledRun = last_midnight.Add(
+							time.Duration(j.atHour)*time.Hour +
+								time.Duration(j.atMinute)*time.Minute,
 						)
-						if j.useAt == true {
-							j.nextScheduledRun = last_midnight.Add(
-								time.Duration(j.atHour)*time.Hour +
-									time.Duration(j.atMinute)*time.Minute,
-							)
-						} else {
-							j.nextScheduledRun = last_midnight
-						}
+					} else {
+						j.nextScheduledRun = last_midnight
 					}
-					j.nextScheduledRun = j.nextScheduledRun.Add(time.Duration(j.frequency*24) * time.Hour)
 				}
+				j.nextScheduledRun = j.nextScheduledRun.Add(time.Duration(j.frequency*24) * time.Hour)
 			}
 
 		} else {
 			panic("Cannot schedule Every(>1) when unit is WEEKDAY") // TODO: Turn this into err
 		}
-		fmt.Println("Scheduled for ", j.nextScheduledRun)
+
+		fmt.Println("Scheduled for ", j.nextScheduledRun) // TODO: Turn this into a log
 
 	}
 	return

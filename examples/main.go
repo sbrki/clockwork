@@ -12,6 +12,7 @@ func main() {
 	sched.Schedule().Every(10).Seconds().Do(something)
 	sched.Schedule().Every(3).Minutes().Do(something)
 	sched.Schedule().Every(4).Hours().Do(something)
+	sched.Schedule().Every().Day().At("12:00")
 	sched.Schedule().Every(2).Days().At("12:32").Do(something)
 	sched.Schedule().Every(12).Weeks().Do(something)
 
