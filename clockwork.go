@@ -19,6 +19,8 @@ import (
 	"github.com/google/uuid"
 )
 
+// TimeUnit is an numeration used for handling
+// time units internally.
 type TimeUnit int
 
 const (
@@ -41,6 +43,8 @@ var timeNow = func() time.Time {
 	return time.Now()
 }
 
+// Job struct handles all the data required to
+// schedule and run jobs.
 type Job struct {
 	identifier string
 	scheduler  *Scheduler
@@ -54,6 +58,7 @@ type Job struct {
 	nextScheduledRun time.Time
 }
 
+// Every is a method that fills the given Job struct with the given frequency
 func (j *Job) Every(frequencies ...int) *Job {
 	l := len(frequencies)
 
@@ -72,11 +77,13 @@ func (j *Job) Every(frequencies ...int) *Job {
 	return j
 }
 
-// Deprecating sooner than later
+// EverySingle is deprecated predecessor to Every()
 func (j *Job) EverySingle() *Job {
 	return j.Every()
 }
 
+// At method fills the given Job struct atHout and atMinute fields
+//with the provided information
 func (j *Job) At(t string) *Job {
 	j.useAt = true
 	j.atHour, _ = strconv.Atoi(strings.Split(t, ":")[0])
@@ -84,6 +91,8 @@ func (j *Job) At(t string) *Job {
 	return j
 }
 
+// Do method fills the given job struct with the function pointer
+// to the job (user provided task) itself.
 func (j *Job) Do(function func()) string {
 	j.workFunc = function
 	j.scheduleNextRun()
@@ -95,9 +104,8 @@ func (j *Job) due() bool {
 	now := timeNow()
 	if now.After(j.nextScheduledRun) {
 		return true
-	} else {
-		return false
 	}
+	return false
 }
 
 // Generally, At() can only be used then unit is day or WEEKDAY
@@ -106,9 +114,8 @@ func (j *Job) isAsUsedIncorrectly() bool {
 		(j.unit == second || j.unit == minute ||
 			j.unit == hour || j.unit == week) {
 		return true
-	} else {
-		return false
 	}
+	return false
 }
 
 // Returns false when job unit is Day or any of the weekdays, vice versa.
@@ -118,9 +125,8 @@ func (j *Job) unitNotDayOrWEEKDAY() bool {
 	if j.unit == second || j.unit == minute ||
 		j.unit == hour || j.unit == week {
 		return true
-	} else {
-		return false
 	}
+	return false
 
 }
 
@@ -133,9 +139,8 @@ func (j *Job) unitNotWEEKDAY() bool {
 		j.unit == hour || j.unit == day ||
 		j.unit == week {
 		return true
-	} else {
-		return false
 	}
+	return false
 }
 
 func (j *Job) scheduleNextRun() {
@@ -174,7 +179,7 @@ func (j *Job) scheduleNextRun() {
 			case day:
 				if j.nextScheduledRun == (time.Time{}) {
 					now := timeNow()
-					last_midnight := time.Date(
+					lastMidnight := time.Date(
 						now.Year(),
 						now.Month(),
 						now.Day(),
@@ -182,12 +187,12 @@ func (j *Job) scheduleNextRun() {
 						time.Local,
 					)
 					if j.useAt == true {
-						j.nextScheduledRun = last_midnight.Add(
+						j.nextScheduledRun = lastMidnight.Add(
 							time.Duration(j.atHour)*time.Hour +
 								time.Duration(j.atMinute)*time.Minute,
 						)
 					} else {
-						j.nextScheduledRun = last_midnight
+						j.nextScheduledRun = lastMidnight
 					}
 				}
 				j.nextScheduledRun = j.nextScheduledRun.Add(24 * time.Hour)
@@ -256,7 +261,7 @@ func (j *Job) scheduleNextRun() {
 				// Handle Day  --  these guy uses At()
 				if j.nextScheduledRun == (time.Time{}) {
 					now := timeNow()
-					last_midnight := time.Date(
+					lastMidnight := time.Date(
 						now.Year(),
 						now.Month(),
 						now.Day(),
@@ -264,12 +269,12 @@ func (j *Job) scheduleNextRun() {
 						time.Local,
 					)
 					if j.useAt == true {
-						j.nextScheduledRun = last_midnight.Add(
+						j.nextScheduledRun = lastMidnight.Add(
 							time.Duration(j.atHour)*time.Hour +
 								time.Duration(j.atMinute)*time.Minute,
 						)
 					} else {
-						j.nextScheduledRun = last_midnight
+						j.nextScheduledRun = lastMidnight
 					}
 				}
 				j.nextScheduledRun = j.nextScheduledRun.Add(
@@ -289,13 +294,13 @@ func (j *Job) scheduleNextRun() {
 	return
 }
 
-func (j *Job) scheduleWeekday(day_of_week time.Weekday) {
+func (j *Job) scheduleWeekday(dayOfWeek time.Weekday) {
 	if j.nextScheduledRun == (time.Time{}) {
 		now := timeNow()
 		lastWeekdayMidnight := time.Date(
 			now.Year(),
 			now.Month(),
-			now.Day()-int(now.Weekday()-day_of_week),
+			now.Day()-int(now.Weekday()-dayOfWeek),
 			0, 0, 0, 0,
 			time.Local)
 		if j.useAt == true {
@@ -310,95 +315,115 @@ func (j *Job) scheduleWeekday(day_of_week time.Weekday) {
 	j.nextScheduledRun = j.nextScheduledRun.Add(7 * 24 * time.Hour)
 }
 
+// Second method fills the given job struct with seconds
 func (j *Job) Second() *Job {
 	j.unit = second
 	return j
 }
+
+// Seconds method fills the given job struct with seconds
 func (j *Job) Seconds() *Job {
 	j.unit = second
 	return j
 }
 
+// Minute method fills the given job struct with minutes
 func (j *Job) Minute() *Job {
 	j.unit = minute
 	return j
 }
 
+// Minutes method fills the given job struct with minutes
 func (j *Job) Minutes() *Job {
 	j.unit = minute
 	return j
 }
 
+// Hour method fills the given job struct with hours
 func (j *Job) Hour() *Job {
 	j.unit = hour
 	return j
 }
 
+// Hours method fills the given job struct with hours
 func (j *Job) Hours() *Job {
 	j.unit = hour
 	return j
 }
 
+// Day method fills the given job struct with days
 func (j *Job) Day() *Job {
 	j.unit = day
 	return j
 }
 
+// Days method fills the given job struct with days
 func (j *Job) Days() *Job {
 	j.unit = day
 	return j
 }
 
+// Week method fills the given job struct with weeks
 func (j *Job) Week() *Job {
 	j.unit = week
 	return j
 }
 
+// Weeks method fills the given job struct with weeks
 func (j *Job) Weeks() *Job {
 	j.unit = week
 	return j
 }
 
+// Monday method fills the given job struct with monday
 func (j *Job) Monday() *Job {
 	j.unit = monday
 	return j
 }
 
+// Tuesday method fills the given job struct with tuesday
 func (j *Job) Tuesday() *Job {
 	j.unit = tuesday
 	return j
 }
 
+// Wednesday method fills the given job struct with wednesday
 func (j *Job) Wednesday() *Job {
 	j.unit = wednesday
 	return j
 }
 
+// Thursday method fills the given job struct with thursday
 func (j *Job) Thursday() *Job {
 	j.unit = thursday
 	return j
 }
 
+// Friday method fills the given job struct with friday
 func (j *Job) Friday() *Job {
 	j.unit = friday
 	return j
 }
 
+// Saturday method fills the given job struct with saturday
 func (j *Job) Saturday() *Job {
 	j.unit = saturday
 	return j
 }
 
+// Sunday method fills the given job struct with sunday
 func (j *Job) Sunday() *Job {
 	j.unit = sunday
 	return j
 }
 
+// Scheduler type is used to store a group of jobs (Job structs)
 type Scheduler struct {
 	identifier string
 	jobs       []Job
 }
 
+// NewScheduler creates and returns a new Scheduler
 func NewScheduler() Scheduler {
 	return Scheduler{
 		identifier: uuid.New().String(),
@@ -406,12 +431,16 @@ func NewScheduler() Scheduler {
 	}
 }
 
+// activateTestMode method sets the timeNow func for testing,
+// by setting the current time to a fixed value
 func (s *Scheduler) activateTestMode() {
 	timeNow = func() time.Time {
 		return time.Date(1, 1, 1, 1, 1, 0, 0, time.Local)
 	}
 }
 
+// Run method on the Scheduler type runs the scheduler.
+// This is a blocking method, and should be run as a goroutine.
 func (s *Scheduler) Run() {
 	for {
 		for jobIdx := range s.jobs {
@@ -421,12 +450,15 @@ func (s *Scheduler) Run() {
 				go job.workFunc()
 			}
 		}
+		time.Sleep(1 * time.Second)
 
 	}
 }
 
+// Schedule method on the Scheduler creates a new Job
+// and prepares is for "filling"
 func (s *Scheduler) Schedule() *Job {
-	new_job := Job{
+	newJob := Job{
 		identifier:       uuid.New().String(),
 		scheduler:        s,
 		unit:             none,
@@ -437,5 +469,5 @@ func (s *Scheduler) Schedule() *Job {
 		workFunc:         nil,
 		nextScheduledRun: time.Time{}, // zero value
 	}
-	return &new_job
+	return &newJob
 }
