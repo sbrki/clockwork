@@ -2,11 +2,13 @@
 
 <p align="center"><img height=250 src ="https://github.com/whiteShtef/clockwork/raw/master/assets/logo/large.png" /></p>
 
-A simple and intuitive scheduling library in Go.
-
+[![](https://raw.githubusercontent.com/istio/fortio/master/docs/mentioned-badge.svg?sanitize=true)](https://github.com/avelino/awesome-go)
 [![GoDoc](https://godoc.org/github.com/whiteshtef/clockwork?status.svg)](https://godoc.org/github.com/whiteshtef/clockwork)
 [![Go Report Card](https://goreportcard.com/badge/github.com/whiteshtef/clockwork)](https://goreportcard.com/report/github.com/whiteshtef/clockwork)
 ![Coverage](http://gocover.io/_badge/github.com/whiteshtef/clockwork)
+
+
+A simple and intuitive scheduling library in Go.
 
 Inspired by [python's schedule](https://github.com/dbader/schedule) and [ruby's clockwork](https://github.com/adamwiggins/clockwork) libraries.
 
