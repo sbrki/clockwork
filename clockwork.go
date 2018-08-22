@@ -529,13 +529,13 @@ func (s *Scheduler) activateTestMode() {
 // This is a blocking method, and should be run as a goroutine.
 func (s *Scheduler) Run() {
 	s.stopCh = make(chan struct{}, 1)
-	s.logger.Debugf("scheduler: %s starts at %s\n", s.identifier, timeNow)
+	s.logger.Debugf("scheduler: %s starts at %s\n", s.identifier, timeNow())
 	go func() {
 	LOOP:
 		for {
 			select {
 			case <-s.stopCh:
-				s.logger.Debugf("scheduler: %s stops at %s\n", s.identifier, timeNow)
+				s.logger.Debugf("scheduler: %s stops at %s\n", s.identifier, timeNow())
 				break LOOP
 			default:
 				s.mtx.RLock()
