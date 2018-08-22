@@ -72,9 +72,13 @@ var timeNow = func() time.Time {
 	return time.Now()
 }
 
+var time1970 = time.Unix(0, 0)
+
 // Job struct handles all the data required to
 // schedule and run jobs.
 type Job struct {
+	stopped bool
+
 	identifier string
 	desc       string
 	scheduler  *Scheduler
@@ -89,8 +93,9 @@ type Job struct {
 }
 
 func (j *Job) Stop() {
-	if j.due() {
-		j.nextScheduledRun = time.Now().AddDate(-1, -1, -1)
+	if !j.stopped {
+		j.nextScheduledRun = time1970
+		j.stopped = true
 	}
 
 	j.scheduler.mtx.Lock()
@@ -218,6 +223,10 @@ func (j *Job) unitNotWEEKDAY() bool {
 }
 
 func (j *Job) scheduleNextRun() {
+	if j.stopped {
+		return
+	}
+
 	// If Every(frequency) == 1, unit can be anything .
 	// At() can be used only with day and WEEKDAY
 	if j.frequency == 1 {
