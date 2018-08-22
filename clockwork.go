@@ -11,12 +11,40 @@
 package clockwork
 
 import (
-	"fmt"
+	"io"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
+)
+
+type (
+	LogLevel = uint8
+
+	// Logger defines the logging interface.
+	Logger interface {
+		Output() io.Writer
+		SetOutput(w io.Writer)
+		Prefix() string
+		SetPrefix(p string)
+		Level() LogLevel
+		SetLevel(v LogLevel)
+		Print(i ...interface{})
+		Printf(format string, args ...interface{})
+		Debug(i ...interface{})
+		Debugf(format string, args ...interface{})
+		Info(i ...interface{})
+		Infof(format string, args ...interface{})
+		Warn(i ...interface{})
+		Warnf(format string, args ...interface{})
+		Error(i ...interface{})
+		Errorf(format string, args ...interface{})
+		Fatal(i ...interface{})
+		Fatalf(format string, args ...interface{})
+		Panic(i ...interface{})
+		Panicf(format string, args ...interface{})
+	}
 )
 
 // TimeUnit is an numeration used for handling
@@ -215,7 +243,7 @@ func (j *Job) scheduleNextRun() {
 
 		}
 
-		fmt.Println("Scheduled for ", j.nextScheduledRun)
+		j.scheduler.logger.Debug("Scheduled for ", j.nextScheduledRun)
 
 	} else {
 		// If Every(frequency) > 1, unit has to be either
@@ -287,9 +315,7 @@ func (j *Job) scheduleNextRun() {
 			// TODO: Turn this into err
 		}
 
-		fmt.Println("Scheduled for ", j.nextScheduledRun)
-		// TODO: Turn this into a log
-
+		j.scheduler.logger.Debug("Scheduled for ", j.nextScheduledRun)
 	}
 	return
 }
@@ -421,13 +447,15 @@ func (j *Job) Sunday() *Job {
 type Scheduler struct {
 	identifier string
 	jobs       []Job
+	logger     Logger
 }
 
 // NewScheduler creates and returns a new Scheduler
-func NewScheduler() Scheduler {
+func NewScheduler(logger Logger) Scheduler {
 	return Scheduler{
 		identifier: uuid.New().String(),
 		jobs:       make([]Job, 0),
+		logger:     logger,
 	}
 }
 
