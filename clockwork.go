@@ -14,6 +14,7 @@ import (
 	"io"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -75,6 +76,7 @@ var timeNow = func() time.Time {
 // schedule and run jobs.
 type Job struct {
 	identifier string
+	desc       string
 	scheduler  *Scheduler
 	unit       TimeUnit
 	frequency  int
@@ -84,6 +86,50 @@ type Job struct {
 	workFunc   func()
 
 	nextScheduledRun time.Time
+}
+
+func (j *Job) Stop() {
+	if j.due() {
+		j.nextScheduledRun = time.Now().AddDate(-1, -1, -1)
+	}
+
+	j.scheduler.mtx.Lock()
+	defer j.scheduler.mtx.Unlock()
+
+	n := -1
+	for i, job := range j.scheduler.jobs {
+		if job.ID() == j.ID() {
+			n = i
+			break
+		}
+	}
+	if n == -1 {
+		return
+	}
+
+	if n == 0 {
+		j.scheduler.jobs = j.scheduler.jobs[1:]
+	} else if n == len(j.scheduler.jobs)-1 {
+		j.scheduler.jobs = j.scheduler.jobs[:n]
+	} else {
+		newjobs := make([]Job, len(j.scheduler.jobs)-1)
+		copy(newjobs, j.scheduler.jobs[0:n])
+		copy(newjobs, j.scheduler.jobs[n+1:])
+		j.scheduler.jobs = newjobs
+	}
+}
+
+func (j *Job) ID() string {
+	return j.identifier
+}
+
+func (j *Job) AddDesc(d string) *Job {
+	j.desc = d
+	return j
+}
+
+func (j *Job) Desc() string {
+	return j.desc
 }
 
 // Every is a method that fills the given Job struct with the given frequency
@@ -445,6 +491,9 @@ func (j *Job) Sunday() *Job {
 
 // Scheduler type is used to store a group of jobs (Job structs)
 type Scheduler struct {
+	mtx    sync.RWMutex
+	stopCh chan struct{}
+
 	identifier string
 	jobs       []Job
 	logger     Logger
@@ -470,17 +519,30 @@ func (s *Scheduler) activateTestMode() {
 // Run method on the Scheduler type runs the scheduler.
 // This is a blocking method, and should be run as a goroutine.
 func (s *Scheduler) Run() {
-	for {
-		for jobIdx := range s.jobs {
-			job := &s.jobs[jobIdx]
-			if job.due() {
-				job.scheduleNextRun()
-				go job.workFunc()
+	s.stopCh = make(chan struct{}, 1)
+	s.logger.Debugf("scheduler: %s starts at %s\n", s.identifier, timeNow)
+	go func() {
+	LOOP:
+		for {
+			select {
+			case <-s.stopCh:
+				s.logger.Debugf("scheduler: %s stops at %s\n", s.identifier, timeNow)
+				break LOOP
+			default:
+				s.mtx.RLock()
+				for jobIdx := range s.jobs {
+					job := &s.jobs[jobIdx]
+					if job.due() {
+						job.scheduleNextRun()
+						go job.workFunc()
+					}
+				}
+				s.mtx.RUnlock()
+
+				time.Sleep(1 * time.Second)
 			}
 		}
-		time.Sleep(1 * time.Second)
-
-	}
+	}()
 }
 
 // Schedule method on the Scheduler creates a new Job
@@ -498,4 +560,27 @@ func (s *Scheduler) Schedule() *Job {
 		nextScheduledRun: time.Time{}, // zero value
 	}
 	return &newJob
+}
+
+func (s *Scheduler) GetJob(id string) *Job {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+
+	for _, job := range s.jobs {
+		if job.ID() == id {
+			return &job
+		}
+	}
+
+	return nil
+}
+
+func (s *Scheduler) Size() int {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return len(s.jobs)
+}
+
+func (s *Scheduler) Stop() {
+	s.stopCh <- struct{}{}
 }
