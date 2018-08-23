@@ -46,11 +46,41 @@ type (
 		Panic(i ...interface{})
 		Panicf(format string, args ...interface{})
 	}
-)
 
-// TimeUnit is an numeration used for handling
-// time units internally.
-type TimeUnit int
+	// TimeUnit is an numeration used for handling
+	// time units internally.
+	TimeUnit int
+
+	// Job struct handles all the data required to
+	// schedule and run jobs.
+	Job struct {
+		stopped bool
+
+		identifier string
+		desc       string
+		scheduler  *Scheduler
+		unit       TimeUnit
+		frequency  int
+		useAt      bool
+		atHour     int
+		atMinute   int
+		workFunc   func()
+
+		nextScheduledRun time.Time
+	}
+
+	// Scheduler type is used to store a group of jobs (Job structs)
+	Scheduler struct {
+		mtx    sync.RWMutex
+		stopCh chan struct{}
+
+		identifier string
+		jobs       []Job
+		logger     Logger
+	}
+
+	JobInfo = map[string]string
+)
 
 const (
 	none = iota
@@ -68,28 +98,33 @@ const (
 	sunday
 )
 
-var timeNow = func() time.Time {
-	return time.Now()
+var (
+	timeUnitName = []string{"None", "Second", "Minute", "Hour", "Day", "Week", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"}
+
+	timeNow = func() time.Time {
+		return time.Now()
+	}
+
+	time1970 = time.Unix(0, 0)
+)
+
+func (j *Job) Info() JobInfo {
+	ret := make(JobInfo)
+	ret["id"] = j.identifier
+	ret["desc"] = j.desc
+	ret["unit"] = timeUnitName[j.unit]
+	ret["frequency"] = strconv.Itoa(j.frequency)
+	ret["useAt"] = "false"
+	if j.useAt {
+		ret["useAt"] = "true"
+		ret["atHour"] = strconv.Itoa(j.atHour)
+		ret["atMinute"] = strconv.Itoa(j.atMinute)
+	}
+	return ret
 }
 
-var time1970 = time.Unix(0, 0)
-
-// Job struct handles all the data required to
-// schedule and run jobs.
-type Job struct {
-	stopped bool
-
-	identifier string
-	desc       string
-	scheduler  *Scheduler
-	unit       TimeUnit
-	frequency  int
-	useAt      bool
-	atHour     int
-	atMinute   int
-	workFunc   func()
-
-	nextScheduledRun time.Time
+func (j *Job) Stopped() bool {
+	return j.stopped
 }
 
 func (j *Job) Stop() {
@@ -498,16 +533,6 @@ func (j *Job) Sunday() *Job {
 	return j
 }
 
-// Scheduler type is used to store a group of jobs (Job structs)
-type Scheduler struct {
-	mtx    sync.RWMutex
-	stopCh chan struct{}
-
-	identifier string
-	jobs       []Job
-	logger     Logger
-}
-
 // NewScheduler creates and returns a new Scheduler
 func NewScheduler(logger Logger) Scheduler {
 	return Scheduler{
@@ -592,4 +617,12 @@ func (s *Scheduler) Size() int {
 
 func (s *Scheduler) Stop() {
 	s.stopCh <- struct{}{}
+}
+
+func (s *Scheduler) AllJobs() []Job {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	cpJobs := make([]Job, len(s.jobs))
+	copy(cpJobs, s.jobs)
+	return cpJobs
 }
