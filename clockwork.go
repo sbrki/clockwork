@@ -153,8 +153,8 @@ func (j *Job) Stop() {
 		j.scheduler.jobs = j.scheduler.jobs[:n]
 	} else {
 		newjobs := make([]Job, len(j.scheduler.jobs)-1)
-		copy(newjobs, j.scheduler.jobs[0:n])
-		copy(newjobs, j.scheduler.jobs[n+1:])
+		copy(newjobs[0:n], j.scheduler.jobs[0:n])
+		copy(newjobs[n:], j.scheduler.jobs[n+1:])
 		j.scheduler.jobs = newjobs
 	}
 }
