@@ -11,17 +11,76 @@
 package clockwork
 
 import (
-	"fmt"
+	"io"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
 )
 
-// TimeUnit is an numeration used for handling
-// time units internally.
-type TimeUnit int
+type (
+	LogLevel = uint8
+
+	// Logger defines the logging interface.
+	Logger interface {
+		Output() io.Writer
+		SetOutput(w io.Writer)
+		Prefix() string
+		SetPrefix(p string)
+		Level() LogLevel
+		SetLevel(v LogLevel)
+		Print(i ...interface{})
+		Printf(format string, args ...interface{})
+		Debug(i ...interface{})
+		Debugf(format string, args ...interface{})
+		Info(i ...interface{})
+		Infof(format string, args ...interface{})
+		Warn(i ...interface{})
+		Warnf(format string, args ...interface{})
+		Error(i ...interface{})
+		Errorf(format string, args ...interface{})
+		Fatal(i ...interface{})
+		Fatalf(format string, args ...interface{})
+		Panic(i ...interface{})
+		Panicf(format string, args ...interface{})
+	}
+
+	// TimeUnit is an numeration used for handling
+	// time units internally.
+	TimeUnit int
+
+	// Job struct handles all the data required to
+	// schedule and run jobs.
+	Job struct {
+		stopped bool
+
+		identifier string
+		desc       string
+		scheduler  *Scheduler
+		unit       TimeUnit
+		frequency  int
+		useAt      bool
+		atHour     int
+		atMinute   int
+		workFunc   func()
+
+		nextScheduledRun time.Time
+	}
+
+	// Scheduler type is used to store a group of jobs (Job structs)
+	Scheduler struct {
+		mtx    sync.RWMutex
+		stopCh chan struct{}
+
+		identifier string
+		jobs       []Job
+		logger     Logger
+	}
+
+	JobInfo = map[string]string
+)
 
 const (
 	none = iota
@@ -39,23 +98,78 @@ const (
 	sunday
 )
 
-var timeNow = func() time.Time {
-	return time.Now()
+var (
+	timeUnitName = []string{"None", "Second", "Minute", "Hour", "Day", "Week", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"}
+
+	timeNow = func() time.Time {
+		return time.Now()
+	}
+
+	time1970 = time.Unix(0, 0)
+)
+
+func (j *Job) Info() JobInfo {
+	ret := make(JobInfo)
+	ret["id"] = j.identifier
+	ret["desc"] = j.desc
+	ret["unit"] = timeUnitName[j.unit]
+	ret["frequency"] = strconv.Itoa(j.frequency)
+	ret["useAt"] = "false"
+	if j.useAt {
+		ret["useAt"] = "true"
+		ret["atHour"] = strconv.Itoa(j.atHour)
+		ret["atMinute"] = strconv.Itoa(j.atMinute)
+	}
+	return ret
 }
 
-// Job struct handles all the data required to
-// schedule and run jobs.
-type Job struct {
-	identifier string
-	scheduler  *Scheduler
-	unit       TimeUnit
-	frequency  int
-	useAt      bool
-	atHour     int
-	atMinute   int
-	workFunc   func()
+func (j *Job) Stopped() bool {
+	return j.stopped
+}
 
-	nextScheduledRun time.Time
+func (j *Job) Stop() {
+	if !j.stopped {
+		j.nextScheduledRun = time1970
+		j.stopped = true
+	}
+
+	j.scheduler.mtx.Lock()
+	defer j.scheduler.mtx.Unlock()
+
+	n := -1
+	for i, job := range j.scheduler.jobs {
+		if job.ID() == j.ID() {
+			n = i
+			break
+		}
+	}
+	if n == -1 {
+		return
+	}
+
+	if n == 0 {
+		j.scheduler.jobs = j.scheduler.jobs[1:]
+	} else if n == len(j.scheduler.jobs)-1 {
+		j.scheduler.jobs = j.scheduler.jobs[:n]
+	} else {
+		newjobs := make([]Job, len(j.scheduler.jobs)-1)
+		copy(newjobs[0:n], j.scheduler.jobs[0:n])
+		copy(newjobs[n:], j.scheduler.jobs[n+1:])
+		j.scheduler.jobs = newjobs
+	}
+}
+
+func (j *Job) ID() string {
+	return j.identifier
+}
+
+func (j *Job) AddDesc(d string) *Job {
+	j.desc = d
+	return j
+}
+
+func (j *Job) Desc() string {
+	return j.desc
 }
 
 // Every is a method that fills the given Job struct with the given frequency
@@ -144,6 +258,10 @@ func (j *Job) unitNotWEEKDAY() bool {
 }
 
 func (j *Job) scheduleNextRun() {
+	if j.stopped {
+		return
+	}
+
 	// If Every(frequency) == 1, unit can be anything .
 	// At() can be used only with day and WEEKDAY
 	if j.frequency == 1 {
@@ -215,7 +333,7 @@ func (j *Job) scheduleNextRun() {
 
 		}
 
-		fmt.Println("Scheduled for ", j.nextScheduledRun)
+		j.scheduler.logger.Debug("Scheduled for ", j.nextScheduledRun)
 
 	} else {
 		// If Every(frequency) > 1, unit has to be either
@@ -287,9 +405,7 @@ func (j *Job) scheduleNextRun() {
 			// TODO: Turn this into err
 		}
 
-		fmt.Println("Scheduled for ", j.nextScheduledRun)
-		// TODO: Turn this into a log
-
+		j.scheduler.logger.Debug("Scheduled for ", j.nextScheduledRun)
 	}
 	return
 }
@@ -417,17 +533,12 @@ func (j *Job) Sunday() *Job {
 	return j
 }
 
-// Scheduler type is used to store a group of jobs (Job structs)
-type Scheduler struct {
-	identifier string
-	jobs       []Job
-}
-
 // NewScheduler creates and returns a new Scheduler
-func NewScheduler() Scheduler {
+func NewScheduler(logger Logger) Scheduler {
 	return Scheduler{
 		identifier: uuid.New().String(),
 		jobs:       make([]Job, 0),
+		logger:     logger,
 	}
 }
 
@@ -442,17 +553,30 @@ func (s *Scheduler) activateTestMode() {
 // Run method on the Scheduler type runs the scheduler.
 // This is a blocking method, and should be run as a goroutine.
 func (s *Scheduler) Run() {
-	for {
-		for jobIdx := range s.jobs {
-			job := &s.jobs[jobIdx]
-			if job.due() {
-				job.scheduleNextRun()
-				go job.workFunc()
+	s.stopCh = make(chan struct{}, 1)
+	s.logger.Debugf("scheduler: %s starts at %s\n", s.identifier, timeNow())
+	go func() {
+	LOOP:
+		for {
+			select {
+			case <-s.stopCh:
+				s.logger.Debugf("scheduler: %s stops at %s\n", s.identifier, timeNow())
+				break LOOP
+			default:
+				s.mtx.RLock()
+				for jobIdx := range s.jobs {
+					job := &s.jobs[jobIdx]
+					if job.due() {
+						job.scheduleNextRun()
+						go job.workFunc()
+					}
+				}
+				s.mtx.RUnlock()
+
+				time.Sleep(1 * time.Second)
 			}
 		}
-		time.Sleep(1 * time.Second)
-
-	}
+	}()
 }
 
 // Schedule method on the Scheduler creates a new Job
@@ -470,4 +594,35 @@ func (s *Scheduler) Schedule() *Job {
 		nextScheduledRun: time.Time{}, // zero value
 	}
 	return &newJob
+}
+
+func (s *Scheduler) GetJob(id string) *Job {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+
+	for _, job := range s.jobs {
+		if job.ID() == id {
+			return &job
+		}
+	}
+
+	return nil
+}
+
+func (s *Scheduler) Size() int {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return len(s.jobs)
+}
+
+func (s *Scheduler) Stop() {
+	s.stopCh <- struct{}{}
+}
+
+func (s *Scheduler) AllJobs() []Job {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	cpJobs := make([]Job, len(s.jobs))
+	copy(cpJobs, s.jobs)
+	return cpJobs
 }
