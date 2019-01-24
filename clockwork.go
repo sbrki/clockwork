@@ -82,8 +82,8 @@ func (j *Job) EverySingle() *Job {
 	return j.Every()
 }
 
-// At method fills the given Job struct atHout and atMinute fields
-//with the provided information
+// At method fills the given Job struct atHour and atMinute fields
+// with the provided information
 func (j *Job) At(t string) *Job {
 	j.useAt = true
 	j.atHour, _ = strconv.Atoi(strings.Split(t, ":")[0])
@@ -109,7 +109,7 @@ func (j *Job) due() bool {
 }
 
 // Generally, At() can only be used then unit is day or WEEKDAY
-func (j *Job) isAsUsedIncorrectly() bool {
+func (j *Job) isAtUsedIncorrectly() bool {
 	if j.useAt == true &&
 		(j.unit == second || j.unit == minute ||
 			j.unit == hour || j.unit == week) {
@@ -149,7 +149,7 @@ func (j *Job) scheduleNextRun() {
 	if j.frequency == 1 {
 
 		// Panic if usage of "At()" is incorrect
-		if j.isAsUsedIncorrectly() {
+		if j.isAtUsedIncorrectly() {
 			panic(
 				`Cannot schedule Every(1) with At()
 				 when unit is not day or WEEKDAY`,
@@ -223,7 +223,7 @@ func (j *Job) scheduleNextRun() {
 		// At() can be used only with day
 
 		// Panic if usage of "At()" is incorrect
-		if j.isAsUsedIncorrectly() {
+		if j.isAtUsedIncorrectly() {
 			panic("Cannot schedule Every(>1) with At() when unit is not day")
 			// TODO: Turn this into err
 		}
