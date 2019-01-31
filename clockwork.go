@@ -101,32 +101,21 @@ func (j *Job) Do(function func()) string {
 }
 
 func (j *Job) due() bool {
-	now := timeNow()
-	if now.After(j.nextScheduledRun) {
-		return true
-	}
-	return false
+	return timeNow().After(j.nextScheduledRun)
 }
 
 // Generally, At() can only be used then unit is day or WEEKDAY
 func (j *Job) isAtUsedIncorrectly() bool {
-	if j.useAt == true &&
-		(j.unit == second || j.unit == minute ||
-			j.unit == hour || j.unit == week) {
-		return true
-	}
-	return false
+	return j.useAt == true && (j.unit == second || j.unit == minute ||
+		j.unit == hour || j.unit == week)
 }
 
 // Returns false when job unit is Day or any of the weekdays, vice versa.
 // Used for scheduling when job frequency is 1, because day and WEEKDAY
 // can be used with At() function which requires different scheduling approach.
 func (j *Job) unitNotDayOrWEEKDAY() bool {
-	if j.unit == second || j.unit == minute ||
-		j.unit == hour || j.unit == week {
-		return true
-	}
-	return false
+	return j.unit == second || j.unit == minute ||
+		j.unit == hour || j.unit == week
 
 }
 
@@ -135,12 +124,9 @@ func (j *Job) unitNotDayOrWEEKDAY() bool {
 // manually check for unit since we can't schedule WEEKDAYS with
 // frequency > 1 .
 func (j *Job) unitNotWEEKDAY() bool {
-	if j.unit == second || j.unit == minute ||
+	return j.unit == second || j.unit == minute ||
 		j.unit == hour || j.unit == day ||
-		j.unit == week {
-		return true
-	}
-	return false
+		j.unit == week
 }
 
 func (j *Job) scheduleNextRun() {
