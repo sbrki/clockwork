@@ -2,7 +2,7 @@
 
 <p align="center"><img height=250 src ="https://github.com/whiteShtef/clockwork/raw/master/assets/logo/large.png" /></p>
 
-[![](https://raw.githubusercontent.com/istio/fortio/master/docs/mentioned-badge.svg?sanitize=true)](https://github.com/avelino/awesome-go)
+[![Awesome](https://cdn.rawgit.com/sindresorhus/awesome/d7305f38d29fed78fa85652e3a63e154dd8e8829/media/badge.svg)](https://github.com/sindresorhus/awesome) 
 [![GoDoc](https://godoc.org/github.com/whiteshtef/clockwork?status.svg)](https://godoc.org/github.com/whiteshtef/clockwork)
 [![Go Report Card](https://goreportcard.com/badge/github.com/whiteshtef/clockwork)](https://goreportcard.com/report/github.com/whiteshtef/clockwork)
 ![Coverage](http://gocover.io/_badge/github.com/whiteshtef/clockwork)
