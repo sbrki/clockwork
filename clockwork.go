@@ -178,10 +178,12 @@ func (j *Job) scheduleNextRun() {
 								time.Duration(j.atMinute)*time.Minute,
 						)
 					} else {
-						j.nextScheduledRun = lastMidnight
+						// If At is not specified, move the next scheduled run to next midnight
+						j.nextScheduledRun = lastMidnight.Add(24 * time.Hour)
 					}
+				} else {
+					j.nextScheduledRun = j.nextScheduledRun.Add(24 * time.Hour)
 				}
-				j.nextScheduledRun = j.nextScheduledRun.Add(24 * time.Hour)
 
 			case monday:
 				j.scheduleWeekday(time.Monday)
@@ -263,9 +265,11 @@ func (j *Job) scheduleNextRun() {
 						j.nextScheduledRun = lastMidnight
 					}
 				}
+
 				j.nextScheduledRun = j.nextScheduledRun.Add(
 					time.Duration(j.frequency*24) * time.Hour,
 				)
+
 			}
 
 		} else {
