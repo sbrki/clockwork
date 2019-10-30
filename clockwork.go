@@ -440,8 +440,7 @@ func (s *Scheduler) Run() {
 				go job.workFunc()
 			}
 		}
-		time.Sleep(1 * time.Second)
-
+		time.Sleep(333 * time.Millisecond)
 	}
 }
 
