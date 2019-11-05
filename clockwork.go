@@ -15,7 +15,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
+	"errors"
+	"log"
 	"github.com/google/uuid"
 )
 
@@ -129,17 +130,14 @@ func (j *Job) unitNotWEEKDAY() bool {
 		j.unit == week
 }
 
-func (j *Job) scheduleNextRun() {
+func (j *Job) scheduleNextRun() error {
 	// If Every(frequency) == 1, unit can be anything .
 	// At() can be used only with day and WEEKDAY
 	if j.frequency == 1 {
 
 		// Panic if usage of "At()" is incorrect
 		if j.isAtUsedIncorrectly() {
-			panic(
-				`Cannot schedule Every(1) with At()
-				 when unit is not day or WEEKDAY`,
-			) // TODO: Turn this into err
+			return errors.New("Cannot schedule Every(1) with At() when unit is not day or WEEKDAY")
 		}
 
 		// Handle everything except day and WEEKDAY -- these guys don't use At()
@@ -210,10 +208,9 @@ func (j *Job) scheduleNextRun() {
 		// second, minute, hour, day, week - not a WEEKDAY .
 		// At() can be used only with day
 
-		// Panic if usage of "At()" is incorrect
+		// return an error if usage of "At()" is incorrect
 		if j.isAtUsedIncorrectly() {
-			panic("Cannot schedule Every(>1) with At() when unit is not day")
-			// TODO: Turn this into err
+			return errors.New("Cannot schedule Every(>1) with At() when unit is not day")
 		}
 
 		// Unlike when frequency = 1, here unit can't be anyhing.
@@ -273,15 +270,12 @@ func (j *Job) scheduleNextRun() {
 			}
 
 		} else {
-			panic("Cannot schedule Every(>1) when unit is WEEKDAY")
-			// TODO: Turn this into err
+			return errors.New("Cannot schedule Every(>1) when unit is WEEKDAY")
 		}
 
-		fmt.Println("Scheduled for ", j.nextScheduledRun)
-		// TODO: Turn this into a log
-
+		log.Println("Scheduled for ", j.nextScheduledRun)
 	}
-	return
+	return nil
 }
 
 func (j *Job) scheduleWeekday(dayOfWeek time.Weekday) {
@@ -439,12 +433,15 @@ func (s *Scheduler) activateTestMode() {
 
 // Run method on the Scheduler type runs the scheduler.
 // This is a blocking method, and should be run as a goroutine.
-func (s *Scheduler) Run() {
+func (s *Scheduler) Run() error{
 	for {
 		for jobIdx := range s.jobs {
 			job := &s.jobs[jobIdx]
 			if job.due() {
-				job.scheduleNextRun()
+				err := job.scheduleNextRun()
+				if err != nil {
+					return err
+				}
 				go job.workFunc()
 			}
 		}
