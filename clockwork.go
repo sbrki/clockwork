@@ -135,7 +135,7 @@ func (j *Job) scheduleNextRun() error {
 	// At() can be used only with day and WEEKDAY
 	if j.frequency == 1 {
 
-		// Panic if usage of "At()" is incorrect
+		// return an error if usage of "At()" is incorrect
 		if j.isAtUsedIncorrectly() {
 			return errors.New("Cannot schedule Every(1) with At() when unit is not day or WEEKDAY")
 		}
