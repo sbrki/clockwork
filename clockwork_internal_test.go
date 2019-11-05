@@ -67,6 +67,16 @@ func TestScheduleNextRun(t *testing.T) {
 	assert.Equal(t, s, time.Date(1, 1, 7, 8, 0, 0, 0, time.Local))
 }
 
+func TestSetPollingInterval(t *testing.T) {
+	sched := NewScheduler()
+	sched.activateTestMode()
+
+	assert.Equal(t, sched.polling_interval, 333)
+
+	sched.SetPollingInterval(500)
+	assert.Equal(t, sched.polling_interval, 500)
+}
+
 // Main test entrypoint
 func TestMain(m *testing.M) {
 	os.Exit(m.Run())

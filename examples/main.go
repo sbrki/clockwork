@@ -20,6 +20,9 @@ func main() {
 	sched.Schedule().Every().Monday().Do(something)
 	sched.Schedule().Every().Saturday().At("8:00").Do(something)
 
+	// Polling interval defaults to 333 milliseconds, but you can set it manually
+	sched.SetPollingInterval(500) // set polling interval to 500 milliseconds
+
 	sched.Run()
 }
 
