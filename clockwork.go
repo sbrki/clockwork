@@ -409,16 +409,24 @@ func (j *Job) Sunday() *Job {
 
 // Scheduler type is used to store a group of jobs (Job structs)
 type Scheduler struct {
-	identifier string
-	jobs       []Job
+	identifier       string
+	jobs             []Job
+	polling_interval int
 }
 
 // NewScheduler creates and returns a new Scheduler
 func NewScheduler() Scheduler {
 	return Scheduler{
-		identifier: uuid.New().String(),
-		jobs:       make([]Job, 0),
+		identifier:       uuid.New().String(),
+		jobs:             make([]Job, 0),
+		polling_interval: 333,
 	}
+}
+
+// SetPollingInterval sets the time (in milliseconds) which scheduler will spend
+// in sleep during each cycle in the Run method
+func (s *Scheduler) SetPollingInterval(milliseconds int) {
+	s.polling_interval = milliseconds
 }
 
 // activateTestMode method sets the timeNow func for testing,
@@ -440,7 +448,7 @@ func (s *Scheduler) Run() {
 				go job.workFunc()
 			}
 		}
-		time.Sleep(1 * time.Second)
+		time.Sleep(time.Duration(s.polling_interval) * time.Millisecond)
 
 	}
 }
