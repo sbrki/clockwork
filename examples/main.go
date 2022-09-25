@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/whiteShtef/clockwork"
+	"github.com/sbrki/clockwork"
 )
 
 func main() {

@@ -1,11 +1,11 @@
 # clockwork
 
-<p align="center"><img height=250 src ="https://github.com/whiteShtef/clockwork/raw/master/assets/logo/large.png" /></p>
+<p align="center"><img height=250 src ="https://github.com/sbrki/clockwork/raw/master/assets/logo/large.png" /></p>
 
 [![Awesome](https://cdn.rawgit.com/sindresorhus/awesome/d7305f38d29fed78fa85652e3a63e154dd8e8829/media/badge.svg)](https://github.com/sindresorhus/awesome) 
-[![GoDoc](https://godoc.org/github.com/whiteshtef/clockwork?status.svg)](https://godoc.org/github.com/whiteshtef/clockwork)
-[![Go Report Card](https://goreportcard.com/badge/github.com/whiteshtef/clockwork)](https://goreportcard.com/report/github.com/whiteshtef/clockwork)
-![Coverage](http://gocover.io/_badge/github.com/whiteshtef/clockwork)
+[![GoDoc](https://godoc.org/github.com/sbrki/clockwork?status.svg)](https://godoc.org/github.com/sbrki/clockwork)
+[![Go Report Card](https://goreportcard.com/badge/github.com/sbrki/clockwork)](https://goreportcard.com/report/github.com/sbrki/clockwork)
+![Coverage](http://gocover.io/_badge/github.com/sbrki/clockwork)
 
 
 A simple and intuitive scheduling library in Go.
@@ -20,7 +20,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/whiteshtef/clockwork"
+	"github.com/sbrki/clockwork"
 )
 
 func main() {
@@ -45,4 +45,6 @@ func something() {
 }
 ```
 
-The package uses [go dep](https://golang.github.io/dep/) for dependency management.
+The package used to use [go dep](https://golang.github.io/dep/) for dependency management.
+It has switched to go modules as of commit `5f1b50934f209adb9930ef98fe654f814156a858`, which
+became available under `v1.0.0`
