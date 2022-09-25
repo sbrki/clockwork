@@ -1,13 +1,14 @@
 // Package clockwork enables simple and intuitive scheduling in Go.
 //
 // Examples:
-//		sched.Schedule().Every(10).Seconds().Do(something)
-//		sched.Schedule().Every(3).Minutes().Do(something)
-//		sched.Schedule().Every(4).Hours().Do(something)
-//		sched.Schedule().Every(2).Days().At("12:32").Do(something)
-//		sched.Schedule().Every(12).Weeks().Do(something)
-//		sched.Schedule().Every(1).Monday().Do(something)
-//		sched.Schedule().Every(1).Saturday().At("8:00").Do(something)
+//
+//	sched.Every(10).Seconds().Do(something)
+//	sched.Every(3).Minutes().Do(something)
+//	sched.Every(4).Hours().Do(something)
+//	sched.Every(2).Days().At("12:32").Do(something)
+//	sched.Every(12).Weeks().Do(something)
+//	sched.Every(1).Monday().Do(something)
+//	sched.Every(1).Saturday().At("8:00").Do(something)
 package clockwork
 
 import (
@@ -56,30 +57,6 @@ type Job struct {
 	workFunc   func()
 
 	nextScheduledRun time.Time
-}
-
-// Every is a method that fills the given Job struct with the given frequency
-func (j *Job) Every(frequencies ...int) *Job {
-	l := len(frequencies)
-
-	switch l {
-	case 0:
-		j.frequency = 1
-	case 1:
-		if frequencies[0] <= 0 {
-			panic("Every expects frequency to be greater than of equal to 1")
-		}
-		j.frequency = frequencies[0]
-	default:
-		panic("Every expects 0 or 1 arguments")
-	}
-
-	return j
-}
-
-// EverySingle is deprecated predecessor to Every()
-func (j *Job) EverySingle() *Job {
-	return j.Every()
 }
 
 // At method fills the given Job struct atHour and atMinute fields
@@ -421,6 +398,42 @@ func NewScheduler() Scheduler {
 		jobs:             make([]Job, 0),
 		polling_interval: 333,
 	}
+}
+
+// Every is a method that fills the given Job struct with the given frequency
+func (s *Scheduler) Every(frequencies ...int) *Job {
+	j := &Job{
+		identifier:       uuid.New().String(),
+		scheduler:        s,
+		unit:             none,
+		frequency:        1,
+		useAt:            false,
+		atHour:           0,
+		atMinute:         0,
+		workFunc:         nil,
+		nextScheduledRun: time.Time{}, // zero value
+	}
+
+	l := len(frequencies)
+
+	switch l {
+	case 0:
+		j.frequency = 1
+	case 1:
+		if frequencies[0] <= 0 {
+			panic("Every expects frequency to be greater than of equal to 1")
+		}
+		j.frequency = frequencies[0]
+	default:
+		panic("Every expects 0 or 1 arguments")
+	}
+
+	return j
+}
+
+// EverySingle is deprecated predecessor to Every()
+func (s *Scheduler) EverySingle() *Job {
+	return s.Every()
 }
 
 // SetPollingInterval sets the time (in milliseconds) which scheduler will spend
